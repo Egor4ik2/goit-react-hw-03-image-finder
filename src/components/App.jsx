@@ -1,13 +1,11 @@
 import React, { Component } from 'react';
-import axios from 'axios';
 import Searchbar from './Searchbar/Searchbar';
 import ImageGallery from './ImageGal/ImageGallery';
 import Button from './Button/Button';
 import Loader from './Loader/Loader';
 import Modal from './Modal/Modal';
-import styles from './App.module.css'
-
-const API_KEY = '36709978-7836bf9f35f408a7db18834e6';
+import { fetchImages } from './api/Api';
+import styles from './App.module.css';
 
 export class App extends Component {
   state = {
@@ -16,6 +14,7 @@ export class App extends Component {
     isLoading: false,
     page: 1,
     selectedImageURL: '',
+    hasMoreImages: true,
   };
 
   componentDidUpdate(prevProps, prevState) {
@@ -26,16 +25,15 @@ export class App extends Component {
 
   fetchImages = () => {
     const { searchQuery, page } = this.state;
-    const url = `https://pixabay.com/api/?q=${searchQuery}&page=${page}&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12`;
 
     this.setState({ isLoading: true });
 
-    axios
-      .get(url)
-      .then((response) => {
+    fetchImages(searchQuery, page)
+      .then((hits) => {
         this.setState((prevState) => ({
-          images: [...prevState.images, ...response.data.hits],
+          images: [...prevState.images, ...hits],
           page: prevState.page + 1,
+          hasMoreImages: hits.length > 0, 
         }));
       })
       .catch((error) => console.log(error))
@@ -45,7 +43,7 @@ export class App extends Component {
   };
 
   handleFormSubmit = (query) => {
-    this.setState({ searchQuery: query, page: 1, images: [] });
+    this.setState({ searchQuery: query, page: 1, images: [], hasMoreImages: true });
   };
 
   handleImageClick = (imageURL) => {
@@ -54,10 +52,10 @@ export class App extends Component {
 
   handleCloseModal = () => {
     this.setState({ selectedImageURL: '' });
-  }
+  };
 
   render() {
-    const { images, isLoading, selectedImageURL } = this.state;
+    const { images, isLoading, selectedImageURL, hasMoreImages } = this.state;
 
     return (
       <div className={styles.App}>
@@ -67,7 +65,7 @@ export class App extends Component {
 
         {isLoading && <Loader />}
 
-        {images.length > 0 && !isLoading && <Button onClick={this.fetchImages} />}
+        {hasMoreImages && images.length > 0 && !isLoading && <Button onClick={this.fetchImages} />}
 
         {selectedImageURL && (
           <Modal imageURL={selectedImageURL} onCloseModal={this.handleCloseModal} />
@@ -76,3 +74,4 @@ export class App extends Component {
     );
   }
 }
+
